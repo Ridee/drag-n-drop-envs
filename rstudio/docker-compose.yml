@@ -1,0 +1,28 @@
+version: '2'
+services:
+  rstudio:
+    container_name: rstudio-server
+    image: rocker/rstudio
+    environment:
+      - VIRTUAL_HOST=$DNS_DOMAIN
+      - VIRTUAL_PORT=8787
+  nginx:
+    container_name: nginx-proxy
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro # docker socket to read VIRTUAL_* vars
+      - ./certs:/etc/nginx/certs:ro # To read the certificates
+      - /usr/share/nginx/html # Letsencrypt uses this auth
+      - /etc/nginx/vhost.d # Letsencrypt vhost access
+    environment:
+      - DEFAULT_HOST=$DNS_DOMAIN
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    volumes:
+      - ./certs:/etc/nginx/certs
+      - /var/run/docker.sock:/tmp/docker.sock:ro # docker socket to read VIRTUAL_* vars
+    volumes_from:
+      - nginx
